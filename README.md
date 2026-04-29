@@ -25,4 +25,5 @@ Tested on:
 - Ganache / Remix
 
 ## Author
-[Your Name]
+Kezita Jebastine
+Jeslyn Liz Jacob

@@ -1,7 +1,7 @@
 ﻿// scripts/interact.js
 // This script simulates the full ZKP anchoring flow
 
-const { ethers } = require("hardhat");
+import { ethers } from "hardhat";
 
 async function main() {
     console.log("🚀 ZKP Anchoring Demo");

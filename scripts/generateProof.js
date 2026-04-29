@@ -1,7 +1,7 @@
 ﻿// scripts/generateProof.js
-const snarkjs = require("snarkjs");
-const fs = require("fs");
-const crypto = require("crypto");
+import snarkjs from "snarkjs";
+import fs from "fs";
+import crypto from "crypto";
 
 async function main() {
     console.log("🔐 Zero-Knowledge Proof Generator");
@@ -12,12 +12,6 @@ async function main() {
     const minAge = 18;        // public - everyone knows this
 
     console.log(`Proving that age (${age}) >= ${minAge} without revealing age...\n`);
-
-    // In a real implementation, you would:
-    // 1. Compile the circuit (done once)
-    // 2. Generate trusted setup (done once)
-    // 3. Generate proof
-    // 4. Generate commitment hash
 
     // For demonstration, we'll create a mock commitment
     const commitmentData = `age-${age}-minAge-${minAge}-timestamp-${Date.now()}`;

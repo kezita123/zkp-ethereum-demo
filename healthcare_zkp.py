@@ -1,4 +1,4 @@
-﻿"""
+"""
 Healthcare AI + ZKP Commitment Generator
 Paper: Privacy-Preserving Verifiable AI Inference in Healthcare
 Authors: Kezita Jebastine, Jeslyn Liz Jacob
@@ -32,6 +32,16 @@ DATASET = [
     [10,115,0,0,0,35.3,0.134,29,0],
     [2,197,70,45,543,30.5,0.158,53,1],
     [8,125,96,0,0,0.0,0.232,54,1],
+    [4,110,92,0,0,37.6,0.191,30,0],
+    [10,168,74,0,0,38.0,0.537,34,1],
+    [10,139,80,0,0,27.1,1.441,57,0],
+    [1,189,60,23,846,30.1,0.398,59,1],
+    [5,166,72,19,175,25.8,0.587,51,1],
+    [7,100,0,0,0,30.0,0.484,32,1],
+    [0,118,84,47,230,45.8,0.551,31,1],
+    [7,107,74,0,0,29.6,0.254,31,1],
+    [1,103,30,38,83,43.3,0.183,33,0],
+    [1,115,70,30,96,34.6,0.529,32,1],
 ]
 
 # ── Simple logistic sigmoid ────────────────────────────────────────────────
@@ -44,6 +54,7 @@ def normalize(value, min_val, max_val):
     return (value - min_val) / (max_val - min_val)
 
 # Pre-trained weights (logistic regression approximation for Pima dataset)
+# [Pregnancies, Glucose, BloodPressure, BMI, Age, bias]
 WEIGHTS = [0.123, 0.035, -0.013, 0.089, 0.018, -5.2]
 
 def predict(patient_features):
@@ -62,9 +73,14 @@ def predict(patient_features):
 
 # ── ZKP Commitment (SHA-256 hash of inference result) ─────────────────────
 def generate_commitment(patient_id, model_version, prediction, probability):
-    """Generates SHA-256 commitment hash (simulating ZKP)"""
+    """
+    Simulates ZKP commitment:
+    In a real ZKP system (Circom/snarkjs), this would be the
+    public output of a zk-SNARK circuit. Here we use SHA-256
+    as a simplified commitment to the inference tuple.
+    """
     payload = {
-        "patient_id": patient_id,
+        "patient_id": patient_id,        # anonymized ID, not real name
         "model_version": model_version,
         "prediction": prediction,
         "probability": probability,
@@ -83,7 +99,7 @@ def run_experiment():
 
     results = []
     MODEL_VERSION = "logistic_regression_v1.0"
-    test_patients = DATASET[:10]
+    test_patients = DATASET[:10]  # use first 10 as test set
 
     print(f"\n{'Run':<5} {'Patient':<10} {'Prediction':<12} {'Prob':<8} "
           f"{'Commit Time(ms)':<18} {'Commitment (first 16 chars)'}")
@@ -93,12 +109,17 @@ def run_experiment():
         patient_id  = f"PAT-{1000 + i}"
         actual      = patient[8]
 
-        t1 = time.perf_counter()
+        # Time the AI inference
+        t0 = time.perf_counter()
         prediction, probability = predict(patient)
+        inference_time = (time.perf_counter() - t0) * 1000  # ms
+
+        # Time the commitment generation
+        t1 = time.perf_counter()
         commitment, payload = generate_commitment(
             patient_id, MODEL_VERSION, prediction, probability
         )
-        commit_time = (time.perf_counter() - t1) * 1000
+        commit_time = (time.perf_counter() - t1) * 1000  # ms
 
         label = "Diabetic" if prediction == 1 else "Non-Diabetic"
         correct = "✓" if prediction == actual else "✗"
@@ -114,14 +135,18 @@ def run_experiment():
             "probability": probability,
             "actual": actual,
             "correct": prediction == actual,
+            "inference_time_ms": round(inference_time, 4),
             "commit_time_ms": round(commit_time, 4),
+            "total_time_ms": round(inference_time + commit_time, 4),
             "commitment": commitment,
-            "commitment_hex": "0x" + commitment
+            "commitment_hex": "0x" + commitment  # format for storeProof()
         })
 
     # ── Summary stats ──────────────────────────────────────────────────────
     correct_count = sum(1 for r in results if r["correct"])
     avg_commit    = sum(r["commit_time_ms"] for r in results) / len(results)
+    avg_inference = sum(r["inference_time_ms"] for r in results) / len(results)
+    avg_total     = sum(r["total_time_ms"] for r in results) / len(results)
     accuracy      = (correct_count / len(results)) * 100
 
     print("\n" + "=" * 65)
@@ -129,10 +154,12 @@ def run_experiment():
     print("=" * 65)
     print(f"  Total patients processed : {len(results)}")
     print(f"  Correct predictions      : {correct_count}/{len(results)} ({accuracy:.0f}%)")
+    print(f"  Avg inference time       : {avg_inference:.4f} ms")
     print(f"  Avg commitment gen time  : {avg_commit:.4f} ms")
+    print(f"  Avg total time per run   : {avg_total:.4f} ms")
     print("=" * 65)
 
-    # ── Save results to CSV ───────────────────────────────────────────────
+    # ── Save results to CSV for paper table ───────────────────────────────
     csv_file = "zkp_results.csv"
     with open(csv_file, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
@@ -147,9 +174,10 @@ def run_experiment():
     with open(commitments_file, "w") as f:
         json.dump(commitments, f, indent=2)
     print(f"  ✅ Commitments saved to: {commitments_file}")
+    print(f"     → Copy these into your Hardhat script to call storeProof()")
 
-    print("\n  NEXT STEP: Run npx hardhat run scripts/storeProof_batch.js --network localhost")
-    print("  to anchor these commitments on-chain and record gas costs.\n")
+    print("\n  NEXT STEP: Run storeProof_batch.js with Hardhat to anchor")
+    print("  these commitments on-chain and record gas costs.\n")
 
     return results
 

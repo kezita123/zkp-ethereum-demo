@@ -100,10 +100,6 @@ npx hardhat run scripts/storeProof_batch.js --network sepolia
 | `storeProof(bytes32 commitment)` | Anchors a ZKP commitment on-chain |
 | `verifyProof(bytes32 commitment)` | Returns `true` if commitment exists |
 
-**Sepolia Testnet Deployment:**
-- Contract Address: `[TO BE ADDED AFTER DEPLOYMENT]`
-- Etherscan: `https://sepolia.etherscan.io/address/[ADDRESS]`
-
 ---
 
 ## Experimental Results

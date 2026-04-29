@@ -4,8 +4,6 @@
 
 This project implements a **privacy-preserving framework for verifiable AI inference in healthcare** using Zero-Knowledge Proof commitments anchored on the Ethereum blockchain.
 
-It forms the prototype implementation for the paper:
-> *"A Privacy-Preserving Framework for Verifiable AI Inference in Healthcare Using Zero-Knowledge Proofs and Blockchain"*
 > Kezita Jebastine, Jeslyn Liz Jacob
 
 ---
@@ -27,7 +25,7 @@ This framework provides cryptographic proof of correct AI inference without reve
 ┌─────────────────────────────────────────────┐
 │  TIER 1: AI Inference (Private)             │
 │  Logistic Regression on Pima Diabetes Data  │
-│  → Runs locally, nothing leaves hospital    │
+│  → Runs locally, nothing leaves the hospital    │
 └──────────────────┬──────────────────────────┘
                    │ inference output
 ┌──────────────────▼──────────────────────────┐

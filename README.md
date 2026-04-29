@@ -4,8 +4,6 @@
 
 This project implements a **privacy-preserving framework for verifiable AI inference in healthcare** using Zero-Knowledge Proof commitments anchored on the Ethereum blockchain.
 
-> Kezita Jebastine, Jeslyn Liz Jacob
-
 ---
 
 ## Problem Statement
@@ -163,8 +161,6 @@ npx hardhat run scripts/storeProof_batch.js --network sepolia
 ## Authors
 
 **Kezita Jebastine** | **Jeslyn Liz Jacob**
-
-Paper submitted to: [Conference Name] | [Year]
 
 ---
 

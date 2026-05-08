@@ -1,4 +1,4 @@
-﻿"""
+"""
 Healthcare AI + ZKP Commitment Generator
 Paper: Privacy-Preserving Verifiable AI Inference in Healthcare
 Authors: Kezita Jebastine, Jeslyn Liz Jacob
@@ -8,7 +8,8 @@ This script:
 2. Trains a simple logistic regression classifier (AI model)
 3. Runs inference on test patients
 4. Generates a ZKP commitment (SHA-256 hash) of each inference
-5. Records timing metrics for the paper's evaluation table
+5. Generates circuit inputs for diabetesClassifier.circom (NEW)
+6. Records timing metrics for the paper's evaluation table
 """
 
 import hashlib
@@ -18,7 +19,7 @@ import csv
 import os
 import random
 
-# ── Pima Diabetes dataset (embedded — no download needed) ──────────────────
+# ?? Pima Diabetes dataset (embedded ? no download needed) ??????????????????
 # Columns: Pregnancies, Glucose, BloodPressure, SkinThickness,
 #          Insulin, BMI, DiabetesPedigreeFunction, Age, Outcome
 DATASET = [
@@ -34,7 +35,7 @@ DATASET = [
     [8,125,96,0,0,0.0,0.232,54,1],
 ]
 
-# ── Simple logistic sigmoid ────────────────────────────────────────────────
+# ?? Simple logistic sigmoid ????????????????????????????????????????????????
 def sigmoid(x):
     return 1.0 / (1.0 + (2.718281828 ** (-x)))
 
@@ -60,7 +61,7 @@ def predict(patient_features):
     prediction = 1 if prob >= 0.5 else 0
     return prediction, round(prob, 4)
 
-# ── ZKP Commitment (SHA-256 hash of inference result) ─────────────────────
+# ?? ZKP Commitment (SHA-256 hash of inference result) ?????????????????????
 def generate_commitment(patient_id, model_version, prediction, probability):
     """Generates SHA-256 commitment hash (simulating ZKP)"""
     payload = {
@@ -74,7 +75,32 @@ def generate_commitment(patient_id, model_version, prediction, probability):
     commitment = hashlib.sha256(payload_str.encode()).hexdigest()
     return commitment, payload_str
 
-# ── Main experiment loop ───────────────────────────────────────────────────
+# ?? Circuit Input Generator (NEW for ZK-SNARK) ?????????????????????????
+def generate_circuit_input(patient_id, prediction, probability, model_version_hash):
+    """
+    Generates the input.json for the diabetesClassifier Circom circuit.
+    
+    Maps Python classifier output to circuit signals:
+    - predictionScore: probability scaled 0-1000 (private input)
+    - threshold: 500 (= 0.5 classification boundary, public)
+    - modelVersion: integer hash of model version (public)
+    """
+    # Scale probability to integer (0.7823 -> 782)
+    scaled_score = int(probability * 1000)
+    
+    # Convert model version string to integer for circuit
+    model_int = int(hashlib.sha256(
+        model_version_hash.encode()
+    ).hexdigest()[:8], 16) % (2**10)  # fit in 10 bits
+    
+    circuit_input = {
+        "predictionScore": str(scaled_score),
+        "threshold": "500",
+        "modelVersion": str(model_int)
+    }
+    return circuit_input
+
+# ?? Main experiment loop ???????????????????????????????????????????????????
 def run_experiment():
     print("=" * 65)
     print("  Healthcare ZKP Commitment Generator")
@@ -84,6 +110,9 @@ def run_experiment():
     results = []
     MODEL_VERSION = "logistic_regression_v1.0"
     test_patients = DATASET[:10]
+
+    # Create circuit inputs directory
+    os.makedirs("circuits/inputs", exist_ok=True)
 
     print(f"\n{'Run':<5} {'Patient':<10} {'Prediction':<12} {'Prob':<8} "
           f"{'Commit Time(ms)':<18} {'Commitment (first 16 chars)'}")
@@ -98,10 +127,19 @@ def run_experiment():
         commitment, payload = generate_commitment(
             patient_id, MODEL_VERSION, prediction, probability
         )
+        
+        # Generate circuit input for ZK proof (NEW)
+        circuit_input = generate_circuit_input(
+            patient_id, prediction, probability, MODEL_VERSION
+        )
+        input_path = f"circuits/inputs/input_{patient_id}.json"
+        with open(input_path, "w") as f:
+            json.dump(circuit_input, f, indent=2)
+            
         commit_time = (time.perf_counter() - t1) * 1000
 
         label = "Diabetic" if prediction == 1 else "Non-Diabetic"
-        correct = "✓" if prediction == actual else "✗"
+        correct = "?" if prediction == actual else "?"
 
         print(f"{i+1:<5} {patient_id:<10} {label:<12} {probability:<8} "
               f"{commit_time:<18.4f} {commitment[:16]}... {correct}")
@@ -119,7 +157,7 @@ def run_experiment():
             "commitment_hex": "0x" + commitment
         })
 
-    # ── Summary stats ──────────────────────────────────────────────────────
+    # ?? Summary stats ??????????????????????????????????????????????????????
     correct_count = sum(1 for r in results if r["correct"])
     avg_commit    = sum(r["commit_time_ms"] for r in results) / len(results)
     accuracy      = (correct_count / len(results)) * 100
@@ -130,25 +168,27 @@ def run_experiment():
     print(f"  Total patients processed : {len(results)}")
     print(f"  Correct predictions      : {correct_count}/{len(results)} ({accuracy:.0f}%)")
     print(f"  Avg commitment gen time  : {avg_commit:.4f} ms")
+    print(f"  Circuit inputs saved to  : circuits/inputs/")
     print("=" * 65)
 
-    # ── Save results to CSV ───────────────────────────────────────────────
+    # ?? Save results to CSV ???????????????????????????????????????????????
     csv_file = "zkp_results.csv"
     with open(csv_file, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
         writer.writeheader()
         writer.writerows(results)
-    print(f"\n  ✅ Results saved to: {csv_file}")
+    print(f"\n  ? Results saved to: {csv_file}")
 
-    # ── Save commitments for storeProof() calls ───────────────────────────
+    # ?? Save commitments for storeProof() calls ???????????????????????????
     commitments_file = "commitments_for_blockchain.json"
     commitments = [{"patient_id": r["patient_id"],
                     "commitment": r["commitment_hex"]} for r in results]
     with open(commitments_file, "w") as f:
         json.dump(commitments, f, indent=2)
-    print(f"  ✅ Commitments saved to: {commitments_file}")
+    print(f"  ? Commitments saved to: {commitments_file}")
 
-    print("\n  NEXT STEP: Run npx hardhat run scripts/storeProof_batch.js --network localhost")
+    print("\n  NEXT STEP 1: Run ./scripts/generateProofs.sh to create ZK proofs")
+    print("  NEXT STEP 2: Run npx hardhat run scripts/storeProof_batch.js --network localhost")
     print("  to anchor these commitments on-chain and record gas costs.\n")
 
     return results

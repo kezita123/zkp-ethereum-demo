@@ -1,0 +1,8 @@
+{
+    "avgGasPerStoreProof": 46033,
+    "network": "Hardhat Local",
+    "commitmentSource": "SHA-256",
+    "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "proofsAnchored": 10,
+    "proofsVerified": 10
+}

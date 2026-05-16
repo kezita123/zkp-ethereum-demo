@@ -21,22 +21,24 @@ This framework provides cryptographic proof of correct AI inference without reve
 
 ```
 ┌─────────────────────────────────────────────┐
-│  TIER 1: AI Inference (Private)             │
-│  Logistic Regression on Pima Diabetes Data  │
-│  → Runs locally, nothing leaves the hospital    │
+│ TIER 1: Identity Layer (SSI) │
+│ Hyperledger Indy / Aries │
+│ DIDs + Verifiable Credentials │
+│ → Patient identity verified off-chain │
 └──────────────────┬──────────────────────────┘
-                   │ inference output
+│ verified identity
 ┌──────────────────▼──────────────────────────┐
-│  TIER 2: ZKP Commitment Generation         │
-│  SHA-256 hash of (model_id, output, ts)     │
-│  → Circom circuit (circuits/ folder)        │
-│  → Proves inference ran correctly           │
+│ TIER 2: AI Inference + ZKP │
+│ Logistic Regression + Groth16 zk-SNARK │
+│ → diabetesClassifier.circom │
+│ → Proves classification without revealing │
+│ the score, features, or weights │
 └──────────────────┬──────────────────────────┘
-                   │ bytes32 commitment
+│ bytes32 commitment
 ┌──────────────────▼──────────────────────────┐
-│  TIER 3: Blockchain Anchoring (EVM)        │
-│  ProofStorage.sol → storeProof(commitment)  │
-│  → Tamper-proof, auditable, immutable       │
+│ TIER 3: Blockchain Anchoring (EVM) │
+│ ProofStorage.sol → storeProof(commitment) │
+│ → Tamper-proof, auditable, immutable │
 └─────────────────────────────────────────────┘
 ```
 
